@@ -1,21 +1,21 @@
-Tasks synchronization and parallelization
+# Tasks synchronization and parallelization #
 
 
 The aim of this lab is to correctly organize computation using multiply processes/threads. 
 
-Variant 10. 
+### Variant 10 ###
 
 Use Java, processes and java.nio.channels.AsynchronousSocketChannel and Future<T>. 
 Binary operation - conjunction. 
 Also generalized to n functions.
 
-Type of cancellation - by special key (Ctrl + C).
+### Type of cancellation ### - by special key (Ctrl + C).
 
 
-Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar!
+<span style="color:red">Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar!</span>
 
 
-Test cases:
+### Test cases: ###
 |x  |F result  |F time  |G result   |G time   |Result  |
 |---|---|---|---|---|---|
 |0   |1   |1018ms   |1   |3021ms   |1|
