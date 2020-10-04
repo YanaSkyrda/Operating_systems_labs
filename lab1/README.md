@@ -4,8 +4,6 @@
 The aim of this lab is to correctly organize computation using multiply processes/threads. 
 
 
-## Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar! ##
-
 ### Variant 10 ###
 
 Use Java, processes and java.nio.channels.AsynchronousSocketChannel and Future<T>. 
@@ -24,3 +22,8 @@ By special key (Ctrl + C)
 |3   |   |   |0  |3012ms   |0|
 |4   |1   |1020ms   |  |inf   |hangs|
 |5   |   |inf   |1  |1016ms   |hangs|
+
+
+
+
+## Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar ##
