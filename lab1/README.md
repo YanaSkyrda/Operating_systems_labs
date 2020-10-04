@@ -26,4 +26,4 @@ By special key (Ctrl + C)
 
 
 
-## Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar ##
+### Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar ###
