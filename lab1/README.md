@@ -16,11 +16,10 @@ Please, make sure to run Main.java in terminal from jar-file that lies in out/ar
 
 
 Test cases:
-|x  |F result  |F time  |G result   |G time   |
-|---|---|---|---|---|
-|0   |1   |1018ms   |1   |3021ms   |
-|2   |0   |3020ms   |   |   |
-|3   |   |   |0  |3012ms   |
-|4   |1   |1020ms   |  |inf   |
-|5   |   |inf   |1  |1016ms   |
-|3   |   |   |0  |3012ms   |
+|x  |F result  |F time  |G result   |G time   |Result  |
+|---|---|---|---|---|---|
+|0   |1   |1018ms   |1   |3021ms   |1|
+|2   |0   |3020ms   |   |   |0|
+|3   |   |   |0  |3012ms   |0|
+|4   |1   |1020ms   |  |inf   |hangs|
+|5   |   |inf   |1  |1016ms   |hangs|
