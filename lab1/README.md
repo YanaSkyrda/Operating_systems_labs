@@ -3,16 +3,17 @@
 
 The aim of this lab is to correctly organize computation using multiply processes/threads. 
 
+
+##Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar!##
+
 ### Variant 10 ###
 
 Use Java, processes and java.nio.channels.AsynchronousSocketChannel and Future<T>. 
 Binary operation - conjunction. 
 Also generalized to n functions.
 
-### Type of cancellation ### - by special key (Ctrl + C).
-
-
-<span style="color:red">Please, make sure to run Main.java in terminal from jar-file that lies in out/artifacts/lab1_main_jar/lab1.main.jar!</span>
+### Type of cancellation ###
+By special key (Ctrl + C)
 
 
 ### Test cases: ###
