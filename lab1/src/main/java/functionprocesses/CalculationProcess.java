@@ -5,16 +5,30 @@ import spos.lab1.demo.Conjunction;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 class CalculationProcess {
-    private AsynchronousSocketChannel socketChannel;
+    private SocketChannel socketChannel;
     private boolean result;
     private long calculationTime;
 
-    CalculationProcess(char func, int x, int port) throws Exception {
+    private void connectToServer(int port) throws IOException {
+        socketChannel = SocketChannel.open();
+        InetSocketAddress hostAddress = new InetSocketAddress("localhost", port);
+        socketChannel.connect(hostAddress);
+    }
+
+    private int readArgument() throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        socketChannel.read(buffer);
+        buffer.rewind();
+        return buffer.getInt();
+    }
+
+    CalculationProcess(char func, int port) throws Exception {
+        connectToServer(port);
+        int x = readArgument();
         long start, end;
         start = System.nanoTime();
         switch (func) {
@@ -31,10 +45,6 @@ class CalculationProcess {
         }
         end = System.nanoTime();
         calculationTime = end - start;
-        socketChannel = AsynchronousSocketChannel.open();
-        InetSocketAddress hostAddress = new InetSocketAddress("localhost", port);
-        Future<Void> clientConnectFuture = socketChannel.connect(hostAddress);
-        clientConnectFuture.get();
         sendResult(func);
     }
 
@@ -44,7 +54,7 @@ class CalculationProcess {
         buffer.putLong(calculationTime);
         buffer.putChar(func);
         buffer.rewind();
-        socketChannel.write(buffer).get();
+        socketChannel.write(buffer);
         socketChannel.close();
     }
 }

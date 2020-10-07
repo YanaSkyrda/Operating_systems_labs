@@ -20,16 +20,12 @@ public class Main {
 
     public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("Enter number of F functions");
-        int FAmount = Integer.parseInt(reader.readLine());
-        System.out.println("Enter number of G functions");
-        int GAmount = Integer.parseInt(reader.readLine());
-        System.out.println("Enter args for F functions");
-        List<Integer> argsForF = readListOfInts(FAmount, reader);
-        System.out.println("Enter args for G functions");
-        List<Integer> argsForG = readListOfInts(GAmount, reader);
+        System.out.println("Enter number of functions");
+        int functionsAmount = Integer.parseInt(reader.readLine());
+        System.out.println("Enter args for functions");
+        List<Integer> functionsArgs = readListOfInts(functionsAmount, reader);
 
-        ComputationManager computationManager = new ComputationManager(FAmount, GAmount, argsForF, argsForG);
+        ComputationManager computationManager = new ComputationManager(functionsAmount, functionsArgs);
         computationManager.run();
     }
 }

@@ -15,24 +15,19 @@ public class ComputationManager {
     private AsynchronousServerSocketChannel server;
     private static final int PORT = 4004;
 
-    private int FAmount;
-    private int GAmount;
-    private List<Integer> argsForF;
-    private List<Integer> argsForG;
+    private int functionsAmount;
+    private List<Integer> args;
 
     private boolean cancel = false;
     private List<Process> processes;
     private boolean result = true;
 
 
-    public ComputationManager(int FAmount, int GAmount,
-                              List<Integer> argsForF, List<Integer> argsForG) throws IOException {
+    public ComputationManager(int functionsAmount, List<Integer> args) throws IOException {
         server = AsynchronousServerSocketChannel.open();
         server.bind(new InetSocketAddress("localhost", PORT));
-        this.FAmount = FAmount;
-        this.GAmount = GAmount;
-        this.argsForF = argsForF;
-        this.argsForG = argsForG;
+        this.functionsAmount = functionsAmount;
+        this.args = args;
         this.processes = new ArrayList<>();
     }
 
@@ -56,42 +51,95 @@ public class ComputationManager {
         }
     }
 
-    private void runAllProcesses() throws IOException {
-        for (int i = 0; i < FAmount; i++) {
-            runProcess("functionprocesses.FProcess", argsForF.get(i));
+    private List<AsynchronousSocketChannel> prepareCalculationClients(String fileWithProcess)
+            throws IOException, ExecutionException, InterruptedException {
+        for (int i = 0; i < functionsAmount; i++) {
+            runProcess(fileWithProcess);
         }
-
-        for (int i = 0; i < GAmount; i++) {
-            runProcess("functionprocesses.GProcess", argsForG.get(i));
-        }
-
+        List<AsynchronousSocketChannel> clients = connectClients();
+        passArguments(clients);
+        return clients;
     }
-    private void runProcess(String fileWithProcess, int arg) throws IOException {
+
+    private void runProcess(String fileWithProcess) throws IOException {
         String currentDirectory = System.getProperty("user.dir");
         Process process = Runtime.getRuntime().exec(
-                "java -cp " + currentDirectory+ "\\lab1.main.jar " + fileWithProcess + " "
-                + arg + " " + PORT);
+                "java -cp " + currentDirectory+ "\\lab1.main.jar " + fileWithProcess + " " + PORT);
         processes.add(process);
     }
 
-    private void printResult(Future<Integer> resultFuture, Future<AsynchronousSocketChannel> channelFuture,
-                             ByteBuffer resultBuffer, boolean clientAlreadyInit) throws ExecutionException, InterruptedException {
-        if (cancel && result) {
-            if (clientAlreadyInit && resultFuture.isDone()) {
-                ResultInfo currResult = getResult(resultFuture, resultBuffer);
-                result = currResult.result;
-            } else if (!clientAlreadyInit && channelFuture.isDone()) {
-                AsynchronousSocketChannel client = channelFuture.get();
-                resultFuture = client.read(resultBuffer);
-                ResultInfo currResult = getResult(resultFuture, resultBuffer);
-                result = currResult.result;
-            } else {
-                System.out.println("Computation was cancelled.");
-                return;
+    private List<AsynchronousSocketChannel> connectClients() throws ExecutionException, InterruptedException {
+        List<AsynchronousSocketChannel> clients = new ArrayList<>(functionsAmount);
+        for (int i = 0; i < functionsAmount; i++) {
+            Future<AsynchronousSocketChannel> client = server.accept();
+            clients.add(client.get());
+        }
+        return clients;
+    }
+
+    private void passArguments(List<AsynchronousSocketChannel> clients) throws ExecutionException, InterruptedException {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        for (int i = 0; i < functionsAmount; i++) {
+            buffer.putInt(args.get(i));
+            buffer.rewind();
+            Future<Integer> writeFuture = clients.get(i).write(buffer);
+            writeFuture.get();
+            buffer.clear();
+        }
+    }
+
+    private List<Future<Integer>> initializeResultFutures(List<AsynchronousSocketChannel> clients,
+                                                          ByteBuffer buffer) {
+        List<Future<Integer>> futures = new ArrayList<>(clients.size());
+        for (AsynchronousSocketChannel client : clients) {
+            futures.add(client.read(buffer));
+        }
+        return futures;
+    }
+
+    private int checkFuturesForResult(List<Future<Integer>> futures, ByteBuffer buffer)
+            throws ExecutionException, InterruptedException {
+        for (Future<Integer> resultFuture : futures) {
+            if (resultFuture.isDone()) {
+                ResultInfo currResult = getResult(resultFuture, buffer);
+                //System.out.println("Got result from function " + currResult.functionType + ": "
+                //        + currResult.result + ". Calculation time: "
+                //        + ((int) (currResult.calculationTime * Math.pow(10, -6))) + " ms.");
+                buffer.clear();
+
+                if (!currResult.result) {
+                    result = false;
+                    for (Process process : processes) {
+                        process.destroy();
+                    }
+                    return 0;
+                } else {
+                    futures.remove(resultFuture);
+                    return 1;
+                }
             }
-        } else {
-            if (result) {
-                System.out.println("Result was calculated without short-circuit evaluation.");
+        }
+        return -1;
+    }
+
+    private void printResult(List<Future<Integer>> resultFuturesF,
+                             List<Future<Integer>> resultFuturesG,
+                             ByteBuffer resultBuffer)
+            throws ExecutionException, InterruptedException {
+        if (cancel && result) {
+            int checkResult = checkFuturesForResult(resultFuturesF, resultBuffer);
+            if (checkResult == 0) {
+                //System.out.println("Result was calculated with short-circuit evaluation.");
+            } else {
+                checkResult = checkFuturesForResult(resultFuturesG, resultBuffer);
+                if (checkResult == 0) {
+                    //System.out.println("Result was calculated with short-circuit evaluation.");
+                } else {
+                    System.out.println("Computation was cancelled.");
+                    System.out.println(resultFuturesF.size() + " F functions were not calculated.");
+                    System.out.println(resultFuturesG.size() + " G functions were not calculated.");
+                    return;
+                }
             }
         }
 
@@ -101,52 +149,31 @@ public class ComputationManager {
     public void run() throws IOException, ExecutionException, InterruptedException {
         Signal.handle(new Signal("INT"), signal -> cancel = true);
 
-        runAllProcesses();
+        List<AsynchronousSocketChannel> FClients = prepareCalculationClients("functionprocesses.FProcess");
+        List<AsynchronousSocketChannel> GClients = prepareCalculationClients("functionprocesses.GProcess");
 
-        Future<AsynchronousSocketChannel> channelFuture = server.accept();
-        AsynchronousSocketChannel client = null;
-        Future<Integer> resultFuture = null;
         ByteBuffer resultBuffer = ByteBuffer.allocate(Integer.BYTES + Long.BYTES + Character.BYTES);
+        List<Future<Integer>> resultFuturesF = initializeResultFutures(FClients, resultBuffer);
+        List<Future<Integer>> resultFuturesG = initializeResultFutures(GClients, resultBuffer);
 
-        int stopCounter = 0;
-        boolean clientAlreadyInit = false;
-
-        while (stopCounter != FAmount + GAmount) {
+        while (!resultFuturesF.isEmpty() || !resultFuturesG.isEmpty()) {
             if (cancel) {
                 break;
             }
 
-            if (channelFuture.isDone()) {
-                if (!clientAlreadyInit) {
-                    client = channelFuture.get();
-                    resultFuture = client.read(resultBuffer);
-                    clientAlreadyInit = true;
-                } else {
-                    if (resultFuture.isDone()) {
-                        ResultInfo currResult = getResult(resultFuture, resultBuffer);
-                        System.out.println("Got result from function " + currResult.functionType + ": "
-                                + currResult.result + ". Calculation time: "
-                                + ((int) (currResult.calculationTime * Math.pow(10, -6))) + " ms.");
-                        resultBuffer.clear();
+            int checkResult = checkFuturesForResult(resultFuturesF, resultBuffer);
+            if (checkResult == 0) {
+                //System.out.println("Result was calculated with short-circuit evaluation.");
+                break;
+            }
 
-                        if (!currResult.result) {
-                            result = false;
-                            for (Process process : processes) {
-                                process.destroy();
-                            }
-                            System.out.println("Result was calculated with short-circuit evaluation.");
-                            break;
-                        } else {
-                            stopCounter++;
-                            client.close();
-                            channelFuture = server.accept();
-                            clientAlreadyInit = false;
-                        }
-                    }
-                }
+            checkResult = checkFuturesForResult(resultFuturesG, resultBuffer);
+            if (checkResult == 0) {
+                //System.out.println("Result was calculated with short-circuit evaluation.");
+                break;
             }
         }
 
-        printResult(resultFuture, channelFuture, resultBuffer, clientAlreadyInit);
+        printResult(resultFuturesF, resultFuturesG, resultBuffer);
     }
 }
