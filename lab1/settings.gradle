@@ -1,2 +1,5 @@
 rootProject.name = 'lab1'
+include 'calculation_processes'
+include 'manager_special_key_cancellation'
+include 'manager_periodic_prompt_cancellation'
 

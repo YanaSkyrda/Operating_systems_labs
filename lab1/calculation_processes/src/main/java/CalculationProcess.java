@@ -1,5 +1,3 @@
-package functionprocesses;
-
 import spos.lab1.demo.Conjunction;
 
 import java.io.IOException;
