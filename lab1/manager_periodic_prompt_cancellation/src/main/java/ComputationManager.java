@@ -156,33 +156,37 @@ public class ComputationManager {
         AtomicBoolean promptRunning = new AtomicBoolean(false);
 
         Signal.handle(new Signal("INT"),
-                signal -> specialKeyPressed.set(true));
+                signal -> {synchronized(specialKeyPressed) {specialKeyPressed.set(true);}});
 
         TimerTask prompt = new TimerTask() {
             @Override
             public void run() {
-                long endTime = System.currentTimeMillis() + 5000;
+                long endTime = System.currentTimeMillis() + 2000;
                 while (System.currentTimeMillis() < endTime) {
-                    if (resultCalculated.get()) {
-                        promptExecutor.shutdownNow();
-                        return;
+                    synchronized (resultCalculated) {
+                        if (resultCalculated.get()) {
+                            promptExecutor.shutdownNow();
+                            return;
+                        }
                     }
-                    if (specialKeyPressed.get()) {
-                        break;
+                    synchronized (specialKeyPressed) {
+                        if (specialKeyPressed.get()) {
+                            break;
+                        }
                     }
                 }
 
-                promptRunning.set(true);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                System.out.println("Do you want to continue? (a - continue, b - continue without prompt, c - stop)");
                 String answer = "";
-                try {
-                    answer = reader.readLine();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                synchronized (promptRunning) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                    System.out.println("Do you want to continue? (a - continue, b - continue without prompt, c - stop)");
+                    answer = "";
+                    try {
+                        answer = reader.readLine();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-
-                promptRunning.set(false);
                 if (resultCalculated.get()) {
                     promptExecutor.shutdownNow();
                     return;
@@ -200,7 +204,6 @@ public class ComputationManager {
         };
 
         promptExecutor.schedule(prompt, 0L, TimeUnit.MILLISECONDS);
-
         while (!resultFuturesF.isEmpty() || !resultFuturesG.isEmpty()) {
             if (cancel) {
                 break;
@@ -216,10 +219,12 @@ public class ComputationManager {
                 break;
             }
         }
-        resultCalculated.set(true);
+        synchronized (resultCalculated) {
+            resultCalculated.set(true);
+        }
         promptExecutor.shutdown();
 
-        while (promptRunning.get());
+        synchronized (promptRunning) {}
         printResult(resultFuturesF, resultFuturesG, resultBuffer);
     }
 }
