@@ -2,19 +2,17 @@
 // the scheduling algorithm written by the user resides.
 // User modification should occur within the Run() function.
 
-import java.util.Collections;
-import java.util.Vector;
+import java.util.*;
 import java.io.*;
 
 public class SchedulingAlgorithm {
 
   public static Results Run(int runtime, Vector<Process> processVector, Results result, int quantum) {
     int comptime = 0;
-    int previousProcess = 0;
     int size = processVector.size();
     int completed = 0;
-    int currBlocked = -1;
-    int blockEndTime = -1;
+    Map<Integer, Integer> blockedProcesses = new HashMap<>();
+
     String resultsFile = "Summary-Processes";
 
     result.schedulingType = "Batch (Nonpreemptive)";
@@ -53,6 +51,7 @@ public class SchedulingAlgorithm {
 
           lottery.setTicketsAmount(lottery.getTicketsAmount() - currProcess.ticketsAmount);
           processes.remove(currProcess);
+          blockedProcesses.remove(currProcess.processNumber);
 
           if (processes.size() == 1) {
             currProcess = processes.elementAt(0);
@@ -62,16 +61,14 @@ public class SchedulingAlgorithm {
           }
         }
 
-        if (currProcess.ioblocking == currProcess.ionext) {
+        if (currProcess.ioblocking == currProcess.ionext && blockedProcesses.size() < processes.size() - 1) {
           out.println("Process: " + currProcess.processNumber + " I/O blocked... ("
                   + currProcess.cputime + " " + currProcess.ioblocking + " " + currProcess.cpudone + ")");
 
-          currBlocked = currProcessIndex;
+          blockedProcesses.put(currProcess.processNumber, comptime + currProcess.blockingDuration);
           currProcess.ionext = 0;
           currProcess.currQuantum = 0;
           currProcess.numblocked++;
-
-          blockEndTime = comptime + currProcess.blockingDuration;
         }
 
         if (processes.size() > 1
@@ -80,14 +77,22 @@ public class SchedulingAlgorithm {
           do {
             currProcessIndex = lottery.run(processes);
             currProcess = processes.elementAt(currProcessIndex);
-          } while (currProcessIndex == currBlocked);
+          } while (blockedProcesses.containsKey(currProcess.processNumber));
           currProcess.currQuantum = 0;
           out.println("Process: " + currProcess.processNumber + " registered... ("
                   + currProcess.cputime + " " + currProcess.ioblocking + " " + currProcess.cpudone + ")");
         }
 
-        if (comptime == blockEndTime) {
-          currBlocked = -1;
+        Set<Integer> processesToUnblock = new HashSet<>();
+        for (Integer processNumber : blockedProcesses.keySet()) {
+          if (blockedProcesses.get(processNumber) == comptime) {
+            processesToUnblock.add(processNumber);
+          }
+        }
+
+        for (Integer processNumber : processesToUnblock) {
+          blockedProcesses.remove(processNumber);
+          out.println("Process: " + processNumber + " I/O unblocked...");
         }
 
         currProcess.cpudone++;

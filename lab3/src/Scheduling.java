@@ -74,7 +74,7 @@ public class Scheduling {
           X = X * standardDev;
           cputime = (int) X + meanDev;
           processVector.addElement(new Process(cputime, ioblocking, 0, 0, 0,
-                  blockingDuration, ticketsAmount, quantum, processVector.size()));
+                  blockingDuration, ticketsAmount, 0, processVector.size()));
         }
         if (line.startsWith("runtime")) {
           StringTokenizer st = new StringTokenizer(line);
@@ -130,7 +130,7 @@ public class Scheduling {
           X = X * standardDev;
         int cputime = (int) X + meanDev;
         processVector.addElement(new Process(cputime,i * 100,0,0,0,
-                blockingDuration, i * 5, quantum, processVector.size()));
+                blockingDuration, i * 5, 0, processVector.size()));
         i++;
       }
     }
