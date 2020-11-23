@@ -17,7 +17,7 @@ public class SchedulingAlgorithm {
     int blockEndTime = -1;
     String resultsFile = "Summary-Processes";
 
-    result.schedulingType = "Batch (Nonpreemptive)"; //???
+    result.schedulingType = "Batch (Nonpreemptive)";
     result.schedulingName = "Lottery";
     try {
       //BufferedWriter out = new BufferedWriter(new FileWriter(resultsFile));
