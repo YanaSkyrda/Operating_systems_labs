@@ -15,11 +15,9 @@ public class SchedulingAlgorithm {
 
     String resultsFile = "Summary-Processes";
 
-    result.schedulingType = "Batch (Nonpreemptive)";
+    result.schedulingType = "Interactive (Preemptive)";
     result.schedulingName = "Lottery";
     try {
-      //BufferedWriter out = new BufferedWriter(new FileWriter(resultsFile));
-      //OutputStream out = new FileOutputStream(resultsFile);
       PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
 
       Vector<Process> processes = (Vector<Process>) processVector.clone();

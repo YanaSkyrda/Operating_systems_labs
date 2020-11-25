@@ -1,4 +1,4 @@
-Scheduling Type: Batch (Nonpreemptive)
+Scheduling Type: Interactive (Preemptive)
 Scheduling Name: Lottery
 Simulation Run Time: 4109
 Mean: 1100
