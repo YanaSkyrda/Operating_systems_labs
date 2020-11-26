@@ -1,4 +1,4 @@
-package memorymanagment;
+package memorymanagement;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -246,7 +246,7 @@ public class ControlPanel extends Frame {
             return true;
         } else if (e.target == stepButton) {
             setStatus("STEP");
-            kernel.step();
+            kernel.step("Round-robin");
             if (kernel.runcycles == kernel.runs) {
                 stepButton.disable();
                 runButton.disable();

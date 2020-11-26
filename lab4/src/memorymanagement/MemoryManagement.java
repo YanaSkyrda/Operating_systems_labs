@@ -1,4 +1,4 @@
-package memorymanagment;// The main MemoryManagement program, created by Alexander Reeder, 2000 Nov 19
+package memorymanagement;// The main MemoryManagement program, created by Alexander Reeder, 2000 Nov 19
 
 import java.io.*;
 

@@ -1,4 +1,4 @@
-package memorymanagment;
+package memorymanagement;
 
 import java.lang.Thread;
 import java.io.*;
@@ -226,6 +226,8 @@ public class Kernel extends Thread {
             File trace = new File(output);
             trace.delete();
         }
+        File benchmark = new File("src/benchmark");
+        benchmark.delete();
         runs = 0;
         for (i = 0; i < virtPageNum; i++) {
             Page page = (Page) memVector.elementAt(i);
@@ -280,14 +282,14 @@ public class Kernel extends Thread {
         controlPanel.paintPage(page);
     }
 
-    private void printLogFile(String message) {
+    private void printMessageToFile(String message, String outputFile) {
         String line;
         String temp = "";
 
-        File trace = new File(output);
+        File trace = new File(outputFile);
         if (trace.exists()) {
             try {
-                DataInputStream in = new DataInputStream(new FileInputStream(output));
+                DataInputStream in = new DataInputStream(new FileInputStream(outputFile));
                 while ((line = in.readLine()) != null) {
                     temp = temp + line + lineSeparator;
                 }
@@ -297,7 +299,7 @@ public class Kernel extends Thread {
             }
         }
         try {
-            PrintStream out = new PrintStream(new FileOutputStream(output));
+            PrintStream out = new PrintStream(new FileOutputStream(outputFile));
             out.print(temp);
             out.print(message);
             out.close();
@@ -307,18 +309,32 @@ public class Kernel extends Thread {
     }
 
     public void run() {
-        step();
+        long totalTime = 0;
+        int numberOfReplacements = 0;
+
+        long stepTime = step("Round-robin");
+        if (stepTime != 0) {
+            totalTime += stepTime;
+            numberOfReplacements++;
+        }
         while (runs != runcycles) {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
                 /* Do nothing */
             }
-            step();
+            stepTime = step("Round-robin");
+            if (stepTime != 0) {
+                totalTime += stepTime;
+                numberOfReplacements++;
+            }
         }
+        printMessageToFile("Total time: " + totalTime * Math.pow(10, -6) + "ms.", "src/benchmark");
+        printMessageToFile("Average time on replacement: "
+                + (totalTime * Math.pow(10, -6))/numberOfReplacements + "ms.", "src/benchmark");
     }
 
-    public void step() {
+    public long step(String replacementAlgorithm) {
         int i = 0;
 
         Instruction instruct = (Instruction) instructVector.elementAt(runs);
@@ -328,22 +344,35 @@ public class Kernel extends Thread {
         if (controlPanel.pageFaultValueLabel.getText().equals("YES")) {
             controlPanel.pageFaultValueLabel.setText("NO");
         }
+        long start = 0;
+        long end = 0;
         if (instruct.inst.startsWith("READ")) {
             Page page = (Page) memVector.elementAt(Virtual2Physical.pageNum(instruct.addr, virtPageNum, block));
             if (page.physical == -1) {
                 if (doFileLog) {
-                    printLogFile("READ " + Long.toString(instruct.addr, addressradix) + " ... page fault");
+                    printMessageToFile("READ " + Long.toString(instruct.addr, addressradix) + " ... page fault",
+                            "src/" + output);
                 }
                 if (doStdoutLog) {
                     System.out.println("READ " + Long.toString(instruct.addr, addressradix) + " ... page fault");
                 }
-                PageFault.replacePage(memVector, virtPageNum, Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                start = System.nanoTime();
+                if ("Round-robin".equals(replacementAlgorithm)) {
+                    PageFault.replacePageRoundRobin(memVector,
+                            virtPageNum, Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                } else {
+                    PageFault.replacePage(memVector, virtPageNum,
+                            Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                }
+                end = System.nanoTime();
+
                 controlPanel.pageFaultValueLabel.setText("YES");
             } else {
                 page.R = 1;
                 page.lastTouchTime = 0;
                 if (doFileLog) {
-                    printLogFile("READ " + Long.toString(instruct.addr, addressradix) + " ... okay");
+                    printMessageToFile("READ " + Long.toString(instruct.addr, addressradix) + " ... okay",
+                            "src/" + output);
                 }
                 if (doStdoutLog) {
                     System.out.println("READ " + Long.toString(instruct.addr, addressradix) + " ... okay");
@@ -354,18 +383,28 @@ public class Kernel extends Thread {
             Page page = (Page) memVector.elementAt(Virtual2Physical.pageNum(instruct.addr, virtPageNum, block));
             if (page.physical == -1) {
                 if (doFileLog) {
-                    printLogFile("WRITE " + Long.toString(instruct.addr, addressradix) + " ... page fault");
+                    printMessageToFile("WRITE " + Long.toString(instruct.addr, addressradix) + " ... page fault",
+                            "src/" + output);
                 }
                 if (doStdoutLog) {
                     System.out.println("WRITE " + Long.toString(instruct.addr, addressradix) + " ... page fault");
                 }
-                PageFault.replacePage(memVector, virtPageNum, Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                start = System.nanoTime();
+                if ("Round-robin".equals(replacementAlgorithm)) {
+                    PageFault.replacePageRoundRobin(memVector,
+                            virtPageNum, Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                } else {
+                    PageFault.replacePage(memVector, virtPageNum,
+                            Virtual2Physical.pageNum(instruct.addr, virtPageNum, block), controlPanel);
+                }
+                end = System.nanoTime();
                 controlPanel.pageFaultValueLabel.setText("YES");
             } else {
                 page.M = 1;
                 page.lastTouchTime = 0;
                 if (doFileLog) {
-                    printLogFile("WRITE " + Long.toString(instruct.addr, addressradix) + " ... okay");
+                    printMessageToFile("WRITE " + Long.toString(instruct.addr, addressradix) + " ... okay",
+                            "src/" + output);
                 }
                 if (doStdoutLog) {
                     System.out.println("WRITE " + Long.toString(instruct.addr, addressradix) + " ... okay");
@@ -384,6 +423,11 @@ public class Kernel extends Thread {
         }
         runs++;
         controlPanel.timeValueLabel.setText((runs * 10) + " (ns)");
+        if (start != 0) {
+            printMessageToFile("Page replacement completed in " + ((end - start) * Math.pow(10, -6)) + "ms",
+                    "src/benchmark");
+        }
+        return (end - start);
     }
 
     public void reset() {

@@ -1,4 +1,4 @@
-package memorymanagment;
+package memorymanagement;
 
 class Virtual2Physical {
   static int pageNum(long memaddr, int numpages, long block) {

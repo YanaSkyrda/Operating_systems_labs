@@ -1,4 +1,4 @@
-package memorymanagment;
+package memorymanagement;
 
 public class Instruction {
     String inst;
